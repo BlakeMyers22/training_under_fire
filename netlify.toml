@@ -3,7 +3,7 @@
   publish = "site"
 
 [[redirects]]
-  from = "/*"
+  from = "/*"d
   to = "/index.html"
   status = 200
 
