@@ -71,7 +71,7 @@ exports.handler = async (event) => {
       if (highQualityCount >= 10) {
         triggeredFineTune = true;
         try {
-          const finetuneResp = await fetch(`${process.env.SITE_URL}/.netlify/functions/trigger-finetune`, {
+          const finetuneResp = await fetch(`/.netlify/functions/trigger-finetune`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ reason: 'auto_trigger' })
