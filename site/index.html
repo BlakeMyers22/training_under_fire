@@ -1,1 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Forensic AI Reports</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-center mb-8">Forensic AI Report Generator</h1>
+
+    <!-- FORM: basic property/claim info -->
+    <form id="reportForm" class="space-y-4 bg-white p-4 rounded shadow">
+      <!-- your fields here (investigationDate, location, etc) -->
+      <div>
+        <label class="block">Investigation Date</label>
+        <input type="date" id="investigationDate" class="border w-full"/>
+      </div>
+      <!-- etc... -->
+
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2">
+        Start Generating
+      </button>
+    </form>
+
+    <!-- SECTION REVIEW -->
+    <div id="sectionReview" class="hidden bg-white p-4 mt-4 rounded shadow">
+      <h2 id="sectionTitle" class="text-xl font-semibold"></h2>
+      <div id="sectionContent" class="mt-2"></div>
+
+      <!-- Buttons: regenerate, accept, rate -->
+      <div class="mt-4 space-x-2">
+        <button id="regenerateBtn" class="bg-yellow-500 text-white px-3 py-1">Regenerate</button>
+        <button id="acceptBtn" class="bg-green-600 text-white px-3 py-1">Accept and Continue</button>
+        <button id="rateBtn" class="bg-blue-500 text-white px-3 py-1">Rate This Section</button>
+      </div>
+
+      <!-- Rating Popup -->
+      <div id="ratingPopup" class="hidden mt-2 p-3 border rounded bg-gray-50">
+        <label>Rating (1-7):</label>
+        <select id="ratingSelect" class="border">
+          <option value="1">1</option><option value="2">2</option>
+          <option value="3">3</option><option value="4">4</option>
+          <option value="5">5</option><option value="6">6</option>
+          <option value="7">7</option>
+        </select>
+        <textarea id="ratingFeedback" class="border w-full mt-2" rows="3"></textarea>
+        <button id="submitRating" class="bg-blue-600 text-white px-3 py-1 mt-2">Submit</button>
+      </div>
+    </div>
+
+    <!-- Script to handle steps -->
+    <script>
+      const sectionIds = [
+        'authorization',
+        'background',
+        'observations',
+        'moisture',
+        'meteorologist',
+        'conclusions',
+        'rebuttal',
+        'limitations'
+      ];
+      let currentIndex = 0;
+      let formContext = {};
+      let generatedSections = {};
+
+      document.getElementById('reportForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        // gather formContext, e.g.:
+        formContext.investigationDate = document.getElementById('investigationDate').value;
+        // etc...
+        currentIndex = 0;
+        generatedSections = {};
+        await generateSection(sectionIds[currentIndex]);
+      });
+
+      async function generateSection(sectionId, customInstructions='') {
+        const sectionTitleElem = document.getElementById('sectionTitle');
+        sectionTitleElem.textContent = 'Generating...';
+        try {
+          const resp = await fetch('/.netlify/functions/generate-section', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              section: sectionId,
+              context: formContext,
+              customInstructions
+            })
+          });
+          const data = await resp.json();
+          generatedSections[sectionId] = data.section;
+
+          // Show the content
+          document.getElementById('sectionReview').classList.remove('hidden');
+          sectionTitleElem.textContent = data.sectionName;
+          document.getElementById('sectionContent').innerHTML = data.section.replace(/\n/g, '<br/>');
+
+        } catch(err) {
+          console.error('Generate error:', err);
+          alert('Failed to generate section. Check console.');
+        }
+      }
+
+      // Regenerate
+      document.getElementById('regenerateBtn').addEventListener('click', () => {
+        const custom = prompt('Any special instructions? Leave blank for normal regen.');
+        generateSection(sectionIds[currentIndex], custom || '');
+      });
+
+      // Accept -> move to next
+      document.getElementById('acceptBtn').addEventListener('click', async () => {
+        currentIndex++;
+        if (currentIndex < sectionIds.length) {
+          await generateSection(sectionIds[currentIndex]);
+        } else {
+          alert('All sections generated! You can now finalize or download the report.');
+        }
+      });
+
+      // Rate
+      document.getElementById('rateBtn').addEventListener('click', () => {
+        document.getElementById('ratingPopup').classList.toggle('hidden');
+      });
+      document.getElementById('submitRating').addEventListener('click', async () => {
+        const ratingVal = parseInt(document.getElementById('ratingSelect').value);
+        const feedbackVal = document.getElementById('ratingFeedback').value.trim();
+        const currentSection = sectionIds[currentIndex];
+        const generatedContent = generatedSections[currentSection];
+
+        try {
+          const resp = await fetch('/.netlify/functions/store-feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sectionId: currentSection,
+              rating: ratingVal,
+              feedback: feedbackVal,
+              generatedContent,
+              originalPrompt: formContext
+            })
+          });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || 'Unknown error');
+          alert('Feedback submitted!');
+        } catch(err) {
+          console.error('Rating error:', err);
+          alert('Failed to submit feedback. Check console.');
+        } finally {
+          document.getElementById('ratingPopup').classList.add('hidden');
+        }
+      });
+    </script>
+  </div>
+</body>
+</html>
 
