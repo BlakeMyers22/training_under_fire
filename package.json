@@ -1,1 +1,16 @@
+{
+  "name": "forensic_ai_reports",
+  "version": "1.0.0",
+  "description": "AI-powered forensic report generator with feedback-based improvement",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'No build steps required' && exit 0"
+  },
+  "dependencies": {
+    "openai": "^4.0.0",
+    "axios": "^1.6.2",
+    "mongodb": "^6.3.0",
+    "node-fetch": "^3.3.2"
+  }
+}
 
